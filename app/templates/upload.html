@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDI 855 Validator - Upload & Analyze</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="container">
+                <div class="nav-brand">
+                    <i class="fas fa-file-alt"></i>
+                    <span>EDI 855 Validator</span>
+                </div>
+                <div class="nav-menu">
+                    <a href="/" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        Home
+                    </a>
+                    <a href="/upload" class="nav-link active">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Upload & Analyze
+                    </a>
+                </div>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main">
+        <section class="hero-section upload-hero">
+            <div class="container">
+                <div class="hero-container">
+                    <div class="hero-content">
+                        <h1 class="hero-title">Upload & Analyze EDI Files</h1>
+                        <p class="hero-subtitle">Upload your PDF specification and EDI data files for comprehensive analysis and validation</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="upload-section">
+            <div class="container">
+                <div class="upload-grid">
+                    <!-- PDF Upload Card -->
+                    <div class="upload-card">
+                        <div class="upload-header">
+                            <i class="fas fa-file-pdf"></i>
+                            <h3>PDF Specification</h3>
+                        </div>
+                        <p>Upload your EDI 855 specification document in PDF format</p>
+                        <div class="file-upload">
+                            <input type="file" id="pdf-upload" accept=".pdf" style="display: none;">
+                            <button class="btn btn-upload" onclick="document.getElementById('pdf-upload').click()">
+                                <i class="fas fa-file-pdf"></i>
+                                Choose PDF File
+                            </button>
+                            <span id="pdf-file-name">No PDF file selected</span>
+                        </div>
+                    </div>
+
+                    <!-- EDI Data Upload Card -->
+                    <div class="upload-card">
+                        <div class="upload-header">
+                            <i class="fas fa-file-text"></i>
+                            <h3>EDI Data (Optional)</h3>
+                        </div>
+                        <p>Upload your EDI 855 data file in TXT format for comparison analysis</p>
+                        <div class="file-upload">
+                            <input type="file" id="edi-upload" accept=".txt" style="display: none;">
+                            <button class="btn btn-upload" onclick="document.getElementById('edi-upload').click()">
+                                <i class="fas fa-file-text"></i>
+                                Choose EDI File
+                            </button>
+                            <span id="edi-file-name">No EDI file selected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Actions -->
+                <div class="analysis-actions">
+                    <button class="btn btn-primary btn-large" onclick="analyzePDF()">
+                        <i class="fas fa-chart-bar"></i>
+                        Analyze Files
+                    </button>
+                    <button class="btn btn-secondary" onclick="testSample()">
+                        <i class="fas fa-vial"></i>
+                        Test with Sample Data
+                    </button>
+                    <button class="btn btn-warning" onclick="debugFilter()">
+                        <i class="fas fa-bug"></i>
+                        Debug PDF Filtering
+                    </button>
+                </div>
+
+                <!-- Search and Filter Section -->
+                <div id="search-section" class="search-section" style="display: none;">
+                    <div class="search-container">
+                        <div class="search-input-group">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="segment-search" placeholder="Search segments by tag, requirement, usage..." onkeyup="searchSegments()">
+                            <button class="btn btn-small" onclick="clearSearch()">
+                                <i class="fas fa-times"></i>
+                                Clear
+                            </button>
+                        </div>
+                        <div class="search-filters">
+                            <select id="requirement-filter" onchange="filterTable()">
+                                <option value="">All Requirements</option>
+                                <option value="mandatory">Mandatory</option>
+                                <option value="optional">Optional</option>
+                            </select>
+                            <select id="usage-filter" onchange="filterTable()">
+                                <option value="">All Usage Types</option>
+                                <option value="must_use">Must Use</option>
+                                <option value="used">Used</option>
+                                <option value="conditional">Conditional</option>
+                                <option value="not_used">Not Used</option>
+                            </select>
+                            <select id="presence-filter" onchange="filterTable()">
+                                <option value="">All Presence Status</option>
+                                <option value="present">Present in EDI</option>
+                                <option value="missing">Missing from EDI</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Display -->
+                <div id="results" class="results-container" style="display: none;">
+                    <div class="results-header">
+                        <h3>Analysis Results</h3>
+                        <button class="btn btn-small" onclick="hideResults()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="results-content">
+                        <pre id="results-json"></pre>
+                    </div>
+                </div>
+
+                <!-- Tabular Results Display -->
+                <div id="tabular-results" class="tabular-results-container" style="display: none;">
+                    <div class="results-header">
+                        <h3>EDI Segment Analysis Table</h3>
+                        <div class="results-actions">
+                            <button class="btn btn-small btn-export" onclick="exportTable()">
+                                <i class="fas fa-download"></i>
+                                Export CSV
+                            </button>
+                            <button class="btn btn-small" onclick="hideTabularResults()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <div class="table-info">
+                            <span id="table-count">Showing 0 of 0 segments</span>
+                        </div>
+                        <table id="segment-table" class="segment-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTable(0)">
+                                        Segment Tag <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortTable(1)">
+                                        X12 Requirement <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortTable(2)">
+                                        Company Usage <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortTable(3)">
+                                        Min Usage <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortTable(4)">
+                                        Max Usage <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortTable(5)">
+                                        Present in EDI <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortTable(6)">
+                                        Status <i class="fas fa-sort"></i>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="segment-table-body">
+                                <!-- Table rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>EDI 855 Validator</h4>
+                    <p>Professional EDI specification analysis and validation tool</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Features</h4>
+                    <ul>
+                        <li>AI-powered PDF analysis</li>
+                        <li>Segment comparison</li>
+                        <li>Searchable results</li>
+                        <li>Export functionality</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li>EDI 855 specifications</li>
+                        <li>X12 standards</li>
+                        <li>Batch processing</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 EDI 855 Validator. Built for professional EDI validation.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+</body>
+</html>

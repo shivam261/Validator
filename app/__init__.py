@@ -225,6 +225,141 @@ def merge_results(ai_results, local_result):
     
     return merged
 
+def parse_edi_elements(edi_data):
+    """Parse EDI data into individual elements with positions"""
+    parsed_elements = []
+    
+    if not edi_data:
+        return parsed_elements
+    
+    # Split by lines and process each segment
+    lines = edi_data.splitlines()
+    
+    for line_num, line in enumerate(lines, 1):
+        line = line.strip()
+        if not line or '~' not in line:
+            continue
+        
+        # Remove the trailing ~ and split by *
+        segment_data = line.rstrip('~')
+        if '*' not in segment_data:
+            continue
+            
+        elements = segment_data.split('*')
+        segment_tag = elements[0] if elements else ''
+        
+        # Parse each element with its position
+        for i, element in enumerate(elements):
+            if i == 0:
+                # First element is the segment tag itself
+                parsed_elements.append({
+                    'line_number': line_num,
+                    'segment_tag': segment_tag,
+                    'element_position': 'Segment ID',
+                    'element_code': segment_tag,
+                    'element_value': element,
+                    'element_description': f'{segment_tag} - Segment Identifier'
+                })
+            else:
+                # Subsequent elements are numbered positions
+                element_code = f'{segment_tag}{i:02d}'
+                parsed_elements.append({
+                    'line_number': line_num,
+                    'segment_tag': segment_tag,
+                    'element_position': f'{segment_tag}{i:02d}',
+                    'element_code': element_code,
+                    'element_value': element if element else '(empty)',
+                    'element_description': get_element_description(segment_tag, i, element)
+                })
+    
+    return parsed_elements
+
+def get_element_description(segment_tag, position, value):
+    """Get description for specific EDI elements"""
+    descriptions = {
+        'ISA': {
+            1: 'Authorization Information Qualifier',
+            2: 'Authorization Information',
+            3: 'Security Information Qualifier', 
+            4: 'Security Information',
+            5: 'Interchange ID Qualifier',
+            6: 'Interchange Sender ID',
+            7: 'Interchange ID Qualifier',
+            8: 'Interchange Receiver ID',
+            9: 'Interchange Date',
+            10: 'Interchange Time',
+            11: 'Interchange Control Standards Identifier',
+            12: 'Interchange Control Version Number',
+            13: 'Interchange Control Number',
+            14: 'Acknowledgment Requested',
+            15: 'Usage Indicator',
+            16: 'Component Element Separator'
+        },
+        'GS': {
+            1: 'Functional Identifier Code',
+            2: 'Application Sender\'s Code',
+            3: 'Application Receiver\'s Code', 
+            4: 'Date',
+            5: 'Time',
+            6: 'Group Control Number',
+            7: 'Responsible Agency Code',
+            8: 'Version / Release / Industry Identifier Code'
+        },
+        'ST': {
+            1: 'Transaction Set Identifier Code',
+            2: 'Transaction Set Control Number'
+        },
+        'BAK': {
+            1: 'Transaction Set Purpose Code',
+            2: 'Acknowledgment Type',
+            3: 'Purchase Order Number',
+            4: 'Date'
+        },
+        'PO1': {
+            1: 'Assigned Identification',
+            2: 'Quantity Ordered',
+            3: 'Unit or Basis for Measurement Code',
+            4: 'Unit Price',
+            5: 'Basis of Unit Price Code',
+            6: 'Product/Service ID Qualifier',
+            7: 'Product/Service ID',
+            8: 'Product/Service ID Qualifier',
+            9: 'Product/Service ID',
+            10: 'Product/Service ID Qualifier',
+            11: 'Product/Service ID'
+        },
+        'ACK': {
+            1: 'Line Item Status Code',
+            2: 'Quantity',
+            3: 'Unit or Basis for Measurement Code',
+            4: 'Date/Time Qualifier',
+            5: 'Date',
+            6: 'Request Reference Number',
+            7: 'Product/Service ID Qualifier',
+            8: 'Product/Service ID'
+        },
+        'CTT': {
+            1: 'Number of Line Items'
+        },
+        'SE': {
+            1: 'Number of Included Segments',
+            2: 'Transaction Set Control Number'
+        },
+        'GE': {
+            1: 'Number of Transaction Sets Included',
+            2: 'Group Control Number'
+        },
+        'IEA': {
+            1: 'Number of Included Functional Groups',
+            2: 'Interchange Control Number'
+        }
+    }
+    
+    if segment_tag in descriptions and position in descriptions[segment_tag]:
+        return descriptions[segment_tag][position]
+    else:
+        return f'{segment_tag} Element {position}'
+
 def create_app():
 
     app = Flask(__name__, static_folder='static')
@@ -342,6 +477,7 @@ def create_app():
             
             # Check if EDI data TXT file is provided
             edi_segments_present = []
+            edi_elements_data = []
             if 'edi_data' in request.files:
                 edi_file = request.files['edi_data']
                 if edi_file.filename != '' and edi_file.filename.lower().endswith('.txt'):
@@ -356,6 +492,9 @@ def create_app():
                                 segment_tag = line.split('*')[0]
                                 if segment_tag and segment_tag not in edi_segments_present:
                                     edi_segments_present.append(segment_tag)
+                        
+                        # Parse EDI elements
+                        edi_elements_data = parse_edi_elements(edi_data)
             
             # Extract and filter PDF text
             pdf_text = extract_pdf_text(pdf_file)
@@ -401,7 +540,9 @@ def create_app():
                 "chunks_processed": len(chunks),
                 "segments_in_edi": edi_segments_present,
                 "segment_specifications": final_result,
-                "tabular_data": tabular_data
+                "tabular_data": tabular_data,
+                "edi_elements": edi_elements_data,
+                "total_elements": len(edi_elements_data)
             })
             
         except Exception as e:

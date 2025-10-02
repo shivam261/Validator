@@ -197,6 +197,77 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- EDI Elements Table -->
+                <div id="elements-results" class="elements-results-container" style="display: none;">
+                    <div class="results-header">
+                        <h3>EDI Elements Breakdown</h3>
+                        <div class="results-actions">
+                            <button class="btn btn-small btn-export" onclick="exportElementsTable()">
+                                <i class="fas fa-download"></i>
+                                Export Elements CSV
+                            </button>
+                            <button class="btn btn-small" onclick="hideElementsResults()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Elements Search Section -->
+                    <div class="elements-search-section">
+                        <div class="search-container">
+                            <div class="search-input-group">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="elements-search" placeholder="Search elements by segment, position, value..." onkeyup="searchElements()">
+                                <button class="btn btn-small" onclick="clearElementsSearch()">
+                                    <i class="fas fa-times"></i>
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="search-filters">
+                                <select id="segment-filter" onchange="filterElementsTable()">
+                                    <option value="">All Segments</option>
+                                </select>
+                                <select id="line-filter" onchange="filterElementsTable()">
+                                    <option value="">All Lines</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-info">
+                            <span id="elements-count">Showing 0 of 0 elements</span>
+                        </div>
+                        <table id="elements-table" class="elements-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortElementsTable(0)">
+                                        Line # <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortElementsTable(1)">
+                                        Segment <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortElementsTable(2)">
+                                        Position <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortElementsTable(3)">
+                                        Element Code <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortElementsTable(4)">
+                                        Value <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortElementsTable(5)">
+                                        Description <i class="fas fa-sort"></i>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="elements-table-body">
+                                <!-- Table rows will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </section>
     </main>

@@ -1,7 +1,10 @@
 // Upload page specific functionality
 let currentTableData = [];
 let filteredTableData = [];
+let currentElementsData = [];
+let filteredElementsData = [];
 let sortDirection = {};
+let elementsSortDirection = {};
 
 // Search functionality
 function searchSegments() {
@@ -188,6 +191,232 @@ function hideTabularResults() {
     filteredTableData = [];
 }
 
+// EDI Elements Table Functions
+function showElementsResults(elementsData) {
+    currentElementsData = elementsData;
+    filteredElementsData = [...elementsData];
+    
+    const elementsContainer = document.getElementById('elements-results');
+    
+    // Populate filter dropdowns
+    populateElementsFilters(elementsData);
+    
+    // Populate table
+    populateElementsTable(filteredElementsData);
+    updateElementsCount();
+    
+    // Show the elements results container
+    elementsContainer.style.display = 'block';
+    
+    // Scroll to elements results
+    elementsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function populateElementsFilters(elementsData) {
+    const segmentFilter = document.getElementById('segment-filter');
+    const lineFilter = document.getElementById('line-filter');
+    
+    // Get unique segments and lines
+    const segments = [...new Set(elementsData.map(el => el.segment_tag))].sort();
+    const lines = [...new Set(elementsData.map(el => el.line_number))].sort((a, b) => a - b);
+    
+    // Populate segment filter
+    segmentFilter.innerHTML = '<option value="">All Segments</option>';
+    segments.forEach(segment => {
+        const option = document.createElement('option');
+        option.value = segment;
+        option.textContent = segment;
+        segmentFilter.appendChild(option);
+    });
+    
+    // Populate line filter
+    lineFilter.innerHTML = '<option value="">All Lines</option>';
+    lines.forEach(line => {
+        const option = document.createElement('option');
+        option.value = line;
+        option.textContent = `Line ${line}`;
+        lineFilter.appendChild(option);
+    });
+}
+
+function searchElements() {
+    const searchTerm = document.getElementById('elements-search').value.toLowerCase();
+    filterAndDisplayElementsTable(searchTerm);
+}
+
+function clearElementsSearch() {
+    document.getElementById('elements-search').value = '';
+    document.getElementById('segment-filter').value = '';
+    document.getElementById('line-filter').value = '';
+    filterAndDisplayElementsTable('');
+}
+
+function filterElementsTable() {
+    const searchTerm = document.getElementById('elements-search').value.toLowerCase();
+    filterAndDisplayElementsTable(searchTerm);
+}
+
+function filterAndDisplayElementsTable(searchTerm = '') {
+    const segmentFilter = document.getElementById('segment-filter').value;
+    const lineFilter = document.getElementById('line-filter').value;
+    
+    filteredElementsData = currentElementsData.filter(row => {
+        // Text search
+        const matchesSearch = searchTerm === '' || 
+            row.segment_tag.toLowerCase().includes(searchTerm) ||
+            row.element_position.toLowerCase().includes(searchTerm) ||
+            row.element_code.toLowerCase().includes(searchTerm) ||
+            row.element_value.toLowerCase().includes(searchTerm) ||
+            row.element_description.toLowerCase().includes(searchTerm);
+        
+        // Segment filter
+        const matchesSegment = segmentFilter === '' || row.segment_tag === segmentFilter;
+        
+        // Line filter
+        const matchesLine = lineFilter === '' || row.line_number.toString() === lineFilter;
+        
+        return matchesSearch && matchesSegment && matchesLine;
+    });
+    
+    populateElementsTable(filteredElementsData);
+    updateElementsCount();
+}
+
+function updateElementsCount() {
+    const countElement = document.getElementById('elements-count');
+    if (countElement) {
+        countElement.textContent = `Showing ${filteredElementsData.length} of ${currentElementsData.length} elements`;
+    }
+}
+
+function sortElementsTable(columnIndex) {
+    const columnNames = ['line_number', 'segment_tag', 'element_position', 'element_code', 'element_value', 'element_description'];
+    const columnName = columnNames[columnIndex];
+    
+    // Toggle sort direction
+    elementsSortDirection[columnName] = elementsSortDirection[columnName] === 'asc' ? 'desc' : 'asc';
+    
+    filteredElementsData.sort((a, b) => {
+        let aVal = a[columnName];
+        let bVal = b[columnName];
+        
+        // Handle different data types
+        if (columnName === 'line_number') {
+            aVal = parseInt(aVal);
+            bVal = parseInt(bVal);
+        } else {
+            aVal = String(aVal).toLowerCase();
+            bVal = String(bVal).toLowerCase();
+        }
+        
+        if (elementsSortDirection[columnName] === 'asc') {
+            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        } else {
+            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+        }
+    });
+    
+    populateElementsTable(filteredElementsData);
+    updateElementsSortIcons(columnIndex);
+}
+
+function updateElementsSortIcons(activeColumn) {
+    const headers = document.querySelectorAll('#elements-table th i');
+    headers.forEach((icon, index) => {
+        icon.className = 'fas fa-sort';
+        if (index === activeColumn) {
+            const columnNames = ['line_number', 'segment_tag', 'element_position', 'element_code', 'element_value', 'element_description'];
+            const direction = elementsSortDirection[columnNames[activeColumn]];
+            icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        }
+    });
+}
+
+function populateElementsTable(data) {
+    const tableBody = document.getElementById('elements-table-body');
+    tableBody.innerHTML = '';
+    
+    data.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        // Helper function to create cells
+        const createCell = (content, className = '') => {
+            const td = document.createElement('td');
+            if (className) {
+                td.className = className;
+            }
+            td.textContent = content;
+            return td;
+        };
+        
+        // Line Number
+        tr.appendChild(createCell(row.line_number, 'line-number-cell'));
+        
+        // Segment Tag
+        tr.appendChild(createCell(row.segment_tag, 'segment-tag-cell'));
+        
+        // Element Position
+        tr.appendChild(createCell(row.element_position, 'element-position-cell'));
+        
+        // Element Code
+        tr.appendChild(createCell(row.element_code, 'element-code-cell'));
+        
+        // Element Value
+        const valueClass = row.element_value === '(empty)' ? 'empty-value' : 'element-value';
+        tr.appendChild(createCell(row.element_value, valueClass));
+        
+        // Description
+        tr.appendChild(createCell(row.element_description, 'element-description'));
+        
+        tableBody.appendChild(tr);
+    });
+}
+
+function hideElementsResults() {
+    document.getElementById('elements-results').style.display = 'none';
+    currentElementsData = [];
+    filteredElementsData = [];
+}
+
+function exportElementsTable() {
+    if (filteredElementsData.length === 0) {
+        alert('No elements data to export');
+        return;
+    }
+    
+    // Create CSV content
+    const headers = ['Line #', 'Segment', 'Position', 'Element Code', 'Value', 'Description'];
+    const csvContent = [
+        headers.join(','),
+        ...filteredElementsData.map(row => [
+            row.line_number,
+            row.segment_tag,
+            row.element_position,
+            row.element_code,
+            `"${row.element_value}"`, // Quote values that might contain commas
+            `"${row.element_description}"`
+        ].join(','))
+    ].join('\\n');
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `edi-elements-breakdown-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+function hideTabularResults() {
+    document.getElementById('tabular-results').style.display = 'none';
+    document.getElementById('search-section').style.display = 'none';
+    currentTableData = [];
+    filteredTableData = [];
+}
+
 function exportTable() {
     if (filteredTableData.length === 0) {
         alert('No data to export');
@@ -232,6 +461,11 @@ function showResults(data) {
     // If tabular data is available, show the table
     if (data.tabular_data && Array.isArray(data.tabular_data)) {
         showTabularResults(data.tabular_data);
+    }
+    
+    // If EDI elements data is available, show the elements table
+    if (data.edi_elements && Array.isArray(data.edi_elements) && data.edi_elements.length > 0) {
+        showElementsResults(data.edi_elements);
     }
     
     // Scroll to results

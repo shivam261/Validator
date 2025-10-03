@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDI 855 Viewer - Consumer Format</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <style>
+        .edi-viewer {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .viewer-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .viewer-title {
+            color: #1f2937;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .viewer-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .edi-sections {
+            display: grid;
+            gap: 2rem;
+        }
+        
+        .edi-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid #667eea;
+        }
+        
+        .section-title {
+            color: #374151;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .data-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .data-label {
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .data-value {
+            color: #1f2937;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            word-break: break-word;
+        }
+        
+        .line-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .line-items-table th,
+        .line-items-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .line-items-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .line-items-table tr:hover {
+            background: #f3f4f6;
+        }
+        
+        .line-total {
+            font-weight: 600;
+            color: #059669;
+            text-align: right;
+        }
+        
+        .total-row {
+            background-color: #f3f4f6 !important;
+            border-top: 2px solid #6b7280;
+        }
+        
+        .total-row:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .grand-total {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #dc2626;
+            text-align: right;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-accepted {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-backordered {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-changed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-deleted {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-rejected {
+            background: #fecaca;
+            color: #dc2626;
+        }
+        
+        .status-default {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .status-description {
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .actions-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .load-sample-btn {
+            background: #e5e7eb;
+            color: #000000;
+            border: 1px solid #d1d5db;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .load-sample-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+        
+        .error {
+            background-color: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: #efe;
+            border: 1px solid #cfc;
+            color: #363;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+        }        @media (max-width: 768px) {
+            .edi-viewer {
+                margin: 1rem;
+                padding: 1rem;
+            }
+            
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="edi-viewer">
+        <div class="viewer-header">
+            <h1 class="viewer-title">
+                <i class="fas fa-file-invoice"></i>
+                EDI 855 Purchase Order Acknowledgment
+            </h1>
+            <p class="viewer-subtitle">Consumer-Readable Format</p>
+        </div>
+        
+        <div class="actions-bar">
+            <button class="load-sample-btn" onclick="loadSampleData()">
+                <i class="fas fa-download"></i>
+                Load Sample EDI Data
+            </button>
+            <button class="load-sample-btn" onclick="goBack()">
+                <i class="fas fa-arrow-left"></i>
+                Back to Upload
+            </button>
+            <button class="load-sample-btn" onclick="document.getElementById('edi-file-input').click()">
+                <i class="fas fa-upload"></i>
+                Upload Your EDI File
+            </button>
+            <input type="file" id="edi-file-input" accept=".txt,.edi" style="display: none;" onchange="handleEDIUpload()">
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            Loading EDI data...
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="edi-content" class="edi-sections" style="display: none;">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        function formatDate(dateString) {
+            if (!dateString || dateString === 'N/A') return 'N/A';
+            
+            // Handle YYYYMMDD format (20150205 -> 05/02/2015)
+            if (dateString.length === 8 && /^\d{8}$/.test(dateString)) {
+                const year = dateString.substring(0, 4);
+                const month = dateString.substring(4, 6);
+                const day = dateString.substring(6, 8);
+                return `${day}/${month}/${year}`;
+            }
+            
+            // Handle YYMMDD format (150205 -> 05/02/2015)
+            if (dateString.length === 6 && /^\d{6}$/.test(dateString)) {
+                const year = '20' + dateString.substring(0, 2);
+                const month = dateString.substring(2, 4);
+                const day = dateString.substring(4, 6);
+                return `${day}/${month}/${year}`;
+            }
+            
+            // Return original if format not recognized
+            return dateString;
+        }
+        
+        function loadSampleData() {
+            console.log('Loading EDI data...');
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('edi-content').style.display = 'none';
+            
+            // First try to load uploaded EDI data
+            fetch('/api/uploaded-edi-json')
+                .then(response => {
+                    if (response.status === 404) {
+                        // No uploaded data, fall back to sample data
+                        console.log('No uploaded data found, loading sample data...');
+                        return fetch('/api/sample-edi-json').then(res => res.json());
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data);
+                    document.getElementById('loading').style.display = 'none';
+                    if (data.json_data) {
+                        console.log('Calling displayEDIData with:', data.json_data);
+                        displayEDIData(data.json_data);
+                        
+                        // Update button text based on data source
+                        const loadButton = document.querySelector('.load-sample-btn');
+                        if (data.message && data.message.includes('Uploaded')) {
+                            loadButton.innerHTML = '<i class="fas fa-refresh"></i> Refresh Uploaded Data';
+                        } else {
+                            loadButton.innerHTML = '<i class="fas fa-download"></i> Load Sample EDI Data';
+                        }
+                    } else {
+                        console.error('No json_data in response');
+                        showError('No data received from server');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading EDI data:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    showError('Error loading EDI data: ' + error.message);
+                });
+        }
+        
+        function handleEDIUpload() {
+            const fileInput = document.getElementById('edi-file-input');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            console.log('Uploading EDI file:', file.name);
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('edi-content').style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('edi_file', file);
+            
+            fetch('/upload-edi-direct', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Upload response:', data);
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.error) {
+                    showError('Upload failed: ' + data.error);
+                } else if (data.json_data) {
+                    console.log('Displaying uploaded EDI data:', data.json_data);
+                    displayEDIData(data.json_data);
+                    
+                    // Update button text
+                    const loadButton = document.querySelector('.load-sample-btn');
+                    loadButton.innerHTML = '<i class="fas fa-refresh"></i> Refresh Uploaded Data';
+                    
+                    // Show success message
+                    showError('EDI file "' + data.filename + '" loaded successfully!', 'success');
+                } else {
+                    showError('Invalid response from server');
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError('Upload failed: ' + error.message);
+            });
+        }
+        
+        function displayEDIData(jsonData) {
+            const container = document.getElementById('edi-content');
+            container.innerHTML = '';
+            
+            // Interchange Information
+            if (jsonData.interchange && Object.keys(jsonData.interchange).length > 0) {
+                container.appendChild(createSection('Interchange Information', 'fas fa-exchange-alt', [
+                    { label: 'Sender ID', value: jsonData.interchange.sender_id },
+                    { label: 'Receiver ID', value: jsonData.interchange.receiver_id },
+                    { label: 'Date', value: formatDate(jsonData.interchange.date) },
+                    { label: 'Time', value: jsonData.interchange.time },
+                    { label: 'Control Number', value: jsonData.interchange.control_number },
+                    { label: 'Usage Indicator', value: jsonData.interchange.usage_indicator }
+                ]));
+            }
+            
+            // Transaction Information
+            if (jsonData.transaction_set && Object.keys(jsonData.transaction_set).length > 0) {
+                container.appendChild(createSection('Transaction Information', 'fas fa-file-contract', [
+                    { label: 'Transaction Type', value: jsonData.transaction_set.transaction_id },
+                    { label: 'Purpose Code', value: jsonData.transaction_set.purpose_code },
+                    { label: 'Acknowledgment Type', value: jsonData.transaction_set.acknowledgment_type },
+                    { label: 'Purchase Order Number', value: jsonData.transaction_set.purchase_order_number },
+                    { label: 'Date', value: formatDate(jsonData.transaction_set.date) },
+                    { label: 'Control Number', value: jsonData.transaction_set.control_number }
+                ]));
+            }
+            
+            // Line Items
+            if (jsonData.line_items && jsonData.line_items.length > 0) {
+                container.appendChild(createLineItemsSection(jsonData.line_items));
+            }
+            
+            // Acknowledgments
+            if (jsonData.acknowledgments && jsonData.acknowledgments.length > 0) {
+                container.appendChild(createAcknowledgmentsSection(jsonData.acknowledgments));
+            }
+            
+            // Summary
+            if (jsonData.summary && Object.keys(jsonData.summary).length > 0) {
+                container.appendChild(createSection('Summary', 'fas fa-chart-bar', [
+                    { label: 'Total Line Items', value: jsonData.summary.line_item_count }
+                ]));
+            }
+            
+            console.log('About to show content, container:', container);
+            container.style.display = 'block';
+        }
+        
+        function createSection(title, icon, items) {
+            const section = document.createElement('div');
+            section.className = 'edi-section';
+            
+            const titleElement = document.createElement('h2');
+            titleElement.className = 'section-title';
+            titleElement.innerHTML = `<i class="${icon}"></i> ${title}`;
+            section.appendChild(titleElement);
+            
+            const grid = document.createElement('div');
+            grid.className = 'data-grid';
+            
+            items.forEach(item => {
+                if (item.value) {
+                    const dataItem = document.createElement('div');
+                    dataItem.className = 'data-item';
+                    dataItem.innerHTML = `
+                        <div class="data-label">${item.label}</div>
+                        <div class="data-value">${item.value}</div>
+                    `;
+                    grid.appendChild(dataItem);
+                }
+            });
+            
+            section.appendChild(grid);
+            return section;
+        }
+        
+        function createLineItemsSection(lineItems) {
+            const section = document.createElement('div');
+            section.className = 'edi-section';
+            
+            const titleElement = document.createElement('h2');
+            titleElement.className = 'section-title';
+            titleElement.innerHTML = '<i class="fas fa-list"></i> Line Items';
+            section.appendChild(titleElement);
+            
+            const table = document.createElement('table');
+            table.className = 'line-items-table';
+            
+            // Calculate line totals and grand total
+            let grandTotal = 0;
+            const lineItemsWithTotals = lineItems.map(item => {
+                const quantity = parseFloat(item.quantity_ordered) || 0;
+                const unitPrice = parseFloat(item.unit_price) || 0;
+                const lineTotal = quantity * unitPrice;
+                grandTotal += lineTotal;
+                
+                return {
+                    ...item,
+                    line_total: lineTotal
+                };
+            });
+            
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Line #</th>
+                        <th>Quantity Ordered</th>
+                        <th>Unit</th>
+                        <th>Unit Price</th>
+                        <th>Product ID (UP/P)</th>
+                        <th>Seller Part Number (VP)</th>
+                        <th>Buyer Part Number (BP)</th>
+                        <th>Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${lineItemsWithTotals.map(item => `
+                        <tr>
+                            <td>${item.line_number || 'N/A'}</td>
+                            <td>${item.quantity_ordered || 'N/A'}</td>
+                            <td>${item.unit_of_measure || 'N/A'}</td>
+                            <td>$${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                            <td>${item.product_id || 'N/A'}</td>
+                            <td>${item.seller_part_number || 'N/A'}</td>
+                            <td>${item.buyer_part_number || 'N/A'}</td>
+                            <td class="line-total">$${item.line_total.toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                    <tr class="total-row">
+                        <td colspan="7"><strong>Grand Total:</strong></td>
+                        <td class="grand-total"><strong>$${grandTotal.toFixed(2)}</strong></td>
+                    </tr>
+                </tbody>
+            `;
+            
+            section.appendChild(table);
+            return section;
+        }
+        
+        function createAcknowledgmentsSection(acknowledgments) {
+            const section = document.createElement('div');
+            section.className = 'edi-section';
+            
+            const titleElement = document.createElement('h2');
+            titleElement.className = 'section-title';
+            titleElement.innerHTML = '<i class="fas fa-check-circle"></i> Acknowledgments';
+            section.appendChild(titleElement);
+            
+            const table = document.createElement('table');
+            table.className = 'line-items-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Status Code</th>
+                        <th>Status Description</th>
+                        <th>Quantity</th>
+                        <th>UOM</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${acknowledgments.map(ack => {
+                        let statusClass = 'status-default';
+                        switch(ack.status_code) {
+                            case 'IA': statusClass = 'status-accepted'; break;
+                            case 'IB': statusClass = 'status-backordered'; break;
+                            case 'IC': statusClass = 'status-changed'; break;
+                            case 'ID': statusClass = 'status-deleted'; break;
+                            case 'IR': statusClass = 'status-rejected'; break;
+                        }
+                        
+                        return `
+                            <tr>
+                                <td>
+                                    <span class="status-badge ${statusClass}">
+                                        ${ack.status_code || 'N/A'}
+                                    </span>
+                                </td>
+                                <td class="status-description">${ack.status_description || 'N/A'}</td>
+                                <td>${ack.quantity || 'N/A'}</td>
+                                <td>${ack.unit_of_measure || 'N/A'}</td>
+                                <td>${formatDate(ack.date)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            `;
+            
+            section.appendChild(table);
+            return section;
+        }
+        
+        function showError(message, type = 'error') {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.className = type === 'success' ? 'success' : 'error';
+            errorDiv.style.display = 'block';
+            
+            // Auto-hide success messages after 3 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        function goBack() {
+            window.close();
+            // Fallback if window.close() doesn't work
+            window.location.href = '/upload';
+        }
+        
+        // Load sample data on page load
+        window.addEventListener('load', () => {
+            loadSampleData();
+        });
+    </script>
+</body>
+</html>

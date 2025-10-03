@@ -223,6 +223,11 @@ async function testSample() {
     }
 }
 
+function viewEDIFormat() {
+    console.log('Opening EDI format viewer...');
+    window.open('/edi-viewer', '_blank');
+}
+
 async function debugFilter() {
     const fileInput = document.getElementById('debug-upload');
     const button = event.target;

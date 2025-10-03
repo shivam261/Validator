@@ -95,6 +95,10 @@
                         <i class="fas fa-vial"></i>
                         Test with Sample Data
                     </button>
+                    <button class="btn btn-info" onclick="viewEDIFormat()">
+                        <i class="fas fa-eye"></i>
+                        View EDI Format
+                    </button>
                     <button class="btn btn-warning" onclick="debugFilter()">
                         <i class="fas fa-bug"></i>
                         Debug PDF Filtering
@@ -178,15 +182,12 @@
                                         Company Usage <i class="fas fa-sort"></i>
                                     </th>
                                     <th onclick="sortTable(3)">
-                                        Min Usage <i class="fas fa-sort"></i>
+                                        MAX <i class="fas fa-sort"></i>
                                     </th>
                                     <th onclick="sortTable(4)">
-                                        Max Usage <i class="fas fa-sort"></i>
-                                    </th>
-                                    <th onclick="sortTable(5)">
                                         Present in EDI <i class="fas fa-sort"></i>
                                     </th>
-                                    <th onclick="sortTable(6)">
+                                    <th onclick="sortTable(5)">
                                         Status <i class="fas fa-sort"></i>
                                     </th>
                                 </tr>
@@ -258,6 +259,9 @@
                                         Value <i class="fas fa-sort"></i>
                                     </th>
                                     <th onclick="sortElementsTable(5)">
+                                        Data Type <i class="fas fa-sort"></i>
+                                    </th>
+                                    <th onclick="sortElementsTable(6)">
                                         Description <i class="fas fa-sort"></i>
                                     </th>
                                 </tr>

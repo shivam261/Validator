@@ -66,7 +66,7 @@ function updateTableCount() {
 }
 
 function sortTable(columnIndex) {
-    const columnNames = ['segment_tag', 'x12_requirement', 'company_usage', 'min_usage', 'max_usage', 'present_in_edi', 'status'];
+    const columnNames = ['segment_tag', 'x12_requirement', 'company_usage', 'max_usage', 'present_in_edi', 'status'];
     const columnName = columnNames[columnIndex];
     
     // Toggle sort direction
@@ -77,9 +77,15 @@ function sortTable(columnIndex) {
         let bVal = b[columnName];
         
         // Handle different data types
-        if (columnName === 'min_usage' || columnName === 'max_usage') {
-            aVal = aVal === 'N/A' ? -1 : parseInt(aVal);
-            bVal = bVal === 'N/A' ? -1 : parseInt(bVal);
+        if (columnName === 'max_usage') {
+            // Handle >1 values for REF segments
+            if (aVal === 'N/A') aVal = -1;
+            else if (aVal === '>1') aVal = 999; // Sort >1 values last
+            else aVal = parseInt(aVal);
+            
+            if (bVal === 'N/A') bVal = -1;
+            else if (bVal === '>1') bVal = 999;
+            else bVal = parseInt(bVal);
         } else if (columnName === 'present_in_edi') {
             aVal = aVal ? 1 : 0;
             bVal = bVal ? 1 : 0;
@@ -148,10 +154,7 @@ function populateTable(data) {
         const usageCell = createCell(row.company_usage, usageClass);
         tr.appendChild(usageCell);
         
-        // Min Usage
-        tr.appendChild(createCell(row.min_usage || 'N/A'));
-        
-        // Max Usage
+        // MAX Usage
         tr.appendChild(createCell(row.max_usage || 'N/A'));
         
         // Present in EDI
@@ -290,7 +293,7 @@ function updateElementsCount() {
 }
 
 function sortElementsTable(columnIndex) {
-    const columnNames = ['line_number', 'segment_tag', 'element_position', 'element_code', 'element_value', 'element_description'];
+    const columnNames = ['line_number', 'segment_tag', 'element_position', 'element_code', 'element_value', 'data_type', 'element_description'];
     const columnName = columnNames[columnIndex];
     
     // Toggle sort direction
@@ -364,6 +367,9 @@ function populateElementsTable(data) {
         // Element Value
         const valueClass = row.element_value === '(empty)' ? 'empty-value' : 'element-value';
         tr.appendChild(createCell(row.element_value, valueClass));
+        
+        // Data Type
+        tr.appendChild(createCell(row.data_type || 'AN', 'data-type-cell'));
         
         // Description
         tr.appendChild(createCell(row.element_description, 'element-description'));
